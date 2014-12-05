@@ -185,6 +185,50 @@ describe 'FuzzyFinder', ->
           expect(editor3.editor.getPath()).toBe expectedPath
           expect(editor3.isFocused).toBeTruthy()
 
+      describe "when no existing files match the query", ->
+        finder = null
+
+        beforeEach ->
+          workspaceView.attachToDom()
+          workspaceView.trigger "fuzzy-finder:toggle-file-finder"
+          finder = workspaceView.find(".fuzzy-finder").view()
+
+        it "creates a file at the path indicated by the query", ->
+          tempPath = path.join(fs.realpathSync(temp.mkdirSync("atom")), "new-file")
+          finder.filterEditorView.getModel().setText(tempPath)
+          finder.trigger("core:confirm")
+
+          expect(fs.isFileSync(tempPath)).toBe(true)
+
+          waitsFor "new file to be opened", ->
+            atom.workspace.getActivePaneItem()?.getPath() is tempPath
+
+          runs ->
+            expect(finder).not.toBeVisible()
+
+        it "creates a directory at the path indicated by the query if it ends in a slash", ->
+          tempPath = path.join(fs.realpathSync(temp.mkdirSync("atom")), "new-dir/")
+          finder.filterEditorView.getModel().setText(tempPath)
+          finder.trigger("core:confirm")
+
+          expect(fs.isDirectorySync(tempPath)).toBe(true)
+
+        fit "opens and does not overwrite a file that was created after the file list was refreshed", ->
+          tempPath = path.join(fs.realpathSync(temp.mkdirSync("atom")), "existing-file")
+          finder.filterEditorView.getModel().setText(tempPath)
+
+          fs.writeFileSync(tempPath, "existing")
+          expect(finder.list).toBeEmpty()
+          finder.trigger("core:confirm")
+
+          expect(fs.readFileSync(tempPath).toString()).toEqual("existing")
+
+          waitsFor "existing file to be opened", ->
+            atom.workspace.getActivePaneItem()?.getPath() is tempPath
+
+          runs ->
+            expect(finder).not.toBeVisible()
+
       describe "when the selected path is a directory", ->
         it "leaves the the tree view open, doesn't open the path in the editor, and displays an error", ->
           workspaceView.attachToDom()

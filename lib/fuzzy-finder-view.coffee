@@ -99,7 +99,6 @@ class FuzzyFinderView extends SelectListView
   getEmptyMessage: (itemCount, filteredItemCount) ->
     "Create: #{@getFilterQuery()}"
 
-
   confirmSelection: ->
     item = @getSelectedItem()
     @confirmed(item)
@@ -125,19 +124,16 @@ class FuzzyFinderView extends SelectListView
     pathToCreate = atom.project.resolve(relativePath)
     return unless pathToCreate
 
-    try
-      if fs.existsSync(pathToCreate)
-        @showError("'#{pathToCreate}' already exists.")
-      else if endsWithDirectorySeparator
-        @showError("File names must not end with a '#{path.sep}' character.")
-      else
-        fs.writeFileSync(pathToCreate, '')
-        atom.project.getRepo()?.getPathStatus(pathToCreate)
-        @trigger 'file-created', [pathToCreate]
-        atom.workspace.open(pathToCreate)
-        @cancel()
-    catch error
-      @showError("#{error.message}.")
+    if fs.existsSync(pathToCreate)
+      @confirmed(filePath: pathToCreate)
+    else if endsWithDirectorySeparator
+      fs.makeTreeSync(pathToCreate)
+      @cancel()
+    else
+      fs.writeFileSync(pathToCreate, '')
+      atom.project.getRepo()?.getPathStatus(pathToCreate)
+      atom.workspace.open(pathToCreate)
+      @cancel()
 
   isQueryALineJump: ->
     query = @filterEditorView.getEditor().getText()
