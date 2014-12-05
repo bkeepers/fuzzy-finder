@@ -106,7 +106,7 @@ class FuzzyFinderView extends SelectListView
       @cancel()
       @moveToLine(lineNumber)
     else if not filePath
-      @cancel()
+      @create(@getFilterQuery())
     else if fs.isDirectorySync(filePath)
       @setError('Selected path is a directory')
       setTimeout((=> @setError()), 2000)
@@ -114,6 +114,28 @@ class FuzzyFinderView extends SelectListView
       lineNumber = @getLineNumber()
       @cancel()
       @openPath(filePath, lineNumber)
+
+  create: (relativePath) ->
+    relativePath = relativePath.replace(/\s+$/, '') # Remove trailing whitespace
+    endsWithDirectorySeparator = relativePath[relativePath.length - 1] is path.sep
+    pathToCreate = atom.project.resolve(relativePath)
+    return unless pathToCreate
+
+    console.log "YEP", pathToCreate, fs.existsSync(pathToCreate)
+
+    try
+      if fs.existsSync(pathToCreate)
+        @showError("'#{pathToCreate}' already exists.")
+      else if endsWithDirectorySeparator
+        @showError("File names must not end with a '#{path.sep}' character.")
+      else
+        fs.writeFileSync(pathToCreate, '')
+        atom.project.getRepo()?.getPathStatus(pathToCreate)
+        @trigger 'file-created', [pathToCreate]
+        atom.workspace.open(pathToCreate)
+        @cancel()
+    catch error
+      @showError("#{error.message}.")
 
   isQueryALineJump: ->
     query = @filterEditorView.getEditor().getText()
