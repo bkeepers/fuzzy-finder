@@ -96,6 +96,10 @@ class FuzzyFinderView extends SelectListView
     else
       super
 
+  getEmptyMessage: (itemCount, filteredItemCount) ->
+    "Create: #{@getFilterQuery()}"
+
+
   confirmSelection: ->
     item = @getSelectedItem()
     @confirmed(item)
@@ -120,8 +124,6 @@ class FuzzyFinderView extends SelectListView
     endsWithDirectorySeparator = relativePath[relativePath.length - 1] is path.sep
     pathToCreate = atom.project.resolve(relativePath)
     return unless pathToCreate
-
-    console.log "YEP", pathToCreate, fs.existsSync(pathToCreate)
 
     try
       if fs.existsSync(pathToCreate)
